@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#FF6B35">
+    <meta name="description" content="Your personal library of Claude-created web apps">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- iOS Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Collection">
+    
+    <!-- Security: Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; frame-src blob:; connect-src 'self';">
+    
+    <title>Collection Manager</title>
+    
+    <style>
+        /* Design System - Professional, Clean, Accessible */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --color-primary: #FF6B35;
+            --color-primary-hover: #E85A2A;
+            --color-secondary: #004E89;
+            --color-success: #2A9D8F;
+            --color-error: #E74C3C;
+            --color-bg: #FAFAFA;
+            --color-surface: #FFFFFF;
+            --color-text: #2C3E50;
+            --color-text-secondary: #7F8C8D;
+            --space-sm: 1rem;
+            --space-md: 1.5rem;
+            --space-lg: 2rem;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 8px rgba(0,0,0,0.12);
+            --transition: 250ms ease;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: var(--color-bg);
+            color: var(--color-text);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            padding-bottom: 80px;
+        }
+        
+        /* Header */
+        .header {
+            background: var(--color-surface);
+            padding: var(--space-md);
+            box-shadow: var(--shadow-sm);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        /* App Grid */
+        .apps-container {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: var(--space-md);
+        }
+        
+        .apps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: var(--space-md);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: var(--space-lg);
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .empty-icon {
+            font-size: 4rem;
+            margin-bottom: var(--space-md);
+            opacity: 0.5;
+        }
+        
+        .empty-title {
+            font-size: 1.5rem;
+            margin-bottom: var(--space-sm);
+        }
+        
+        .empty-description {
+            color: var(--color-text-secondary);
+            margin-bottom: var(--space-lg);
+        }
+        
+        /* App Card */
+        .app-card {
+            background: var(--color-surface);
+            border-radius: 16px;
+            padding: var(--space-md);
+            box-shadow: var(--shadow-sm);
+            cursor: pointer;
+            transition: all var(--transition);
+            height: 200px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .app-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .app-icon {
+            font-size: 3rem;
+            margin-bottom: var(--space-sm);
+        }
+        
+        .app-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .app-description {
+            color: var(--color-text-secondary);
+            font-size: 0.875rem;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+        
+        .app-meta {
+            display: flex;
+            gap: var(--space-sm);
+            font-size: 0.75rem;
+            color: var(--color-text-secondary);
+            margin-top: var(--space-sm);
+            padding-top: var(--space-sm);
+            border-top: 1px solid #F0F0F0;
+        }
+        
+        .badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.625rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .badge-html { background: #E3F2FD; color: #1976D2; }
+        .badge-react { background: #E8F5E9; color: #388E3C; }
+        .badge-javascript { background: #FFF3E0; color: #F57C00; }
+        
+        /* Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--color-surface);
+            border-top: 1px solid #E0E0E0;
+            display: flex;
+            justify-content: space-around;
+            padding: 0.75rem;
+            z-index: 100;
+        }
+        
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            color: var(--color-text-secondary);
+            background: none;
+            border: none;
+            font-size: 0.75rem;
+            transition: color var(--transition);
+        }
+        
+        .nav-item:hover, .nav-item.active {
+            color: var(--color-primary);
+        }
+        
+        .nav-icon {
+            font-size: 1.5rem;
+        }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-md);
+        }
+        
+        .modal.visible {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: var(--color-surface);
+            border-radius: 20px;
+            padding: var(--space-lg);
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: var(--space-md);
+        }
+        
+        .import-option {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            padding: var(--space-md);
+            border: 2px solid #E0E0E0;
+            border-radius: 12px;
+            margin-bottom: var(--space-sm);
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+        
+        .import-option:hover {
+            border-color: var(--color-primary);
+            background: #FFF5F2;
+        }
+        
+        .import-icon {
+            font-size: 2rem;
+        }
+        
+        .import-text {
+            flex: 1;
+        }
+        
+        .import-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        
+        .import-description {
+            color: var(--color-text-secondary);
+            font-size: 0.875rem;
+        }
+        
+        /* App Overlay */
+        .app-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--color-surface);
+            z-index: 2000;
+            flex-direction: column;
+        }
+        
+        .app-overlay.visible {
+            display: flex;
+        }
+        
+        .app-toolbar {
+            background: var(--color-primary);
+            color: white;
+            padding: var(--space-sm) var(--space-md);
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+        }
+        
+        .close-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .close-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .app-title {
+            flex: 1;
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+        
+        .app-frame {
+            flex: 1;
+            width: 100%;
+            border: none;
+        }
+        
+        /* Form Elements */
+        .paste-textarea {
+            width: 100%;
+            min-height: 300px;
+            padding: var(--space-md);
+            border: 2px solid #E0E0E0;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.875rem;
+            resize: vertical;
+        }
+        
+        .paste-textarea:focus {
+            outline: none;
+            border-color: var(--color-primary);
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition);
+            border: none;
+        }
+        
+        .btn-primary {
+            background: var(--color-primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--color-primary-hover);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            border: 2px solid #E0E0E0;
+            color: var(--color-text);
+        }
+        
+        /* Loading */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        
+        .loading-overlay.visible {
+            display: flex;
+        }
+        
+        .loading-content {
+            background: white;
+            padding: var(--space-lg);
+            border-radius: 16px;
+            text-align: center;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #E0E0E0;
+            border-top-color: var(--color-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto var(--space-md);
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--color-text);
+            color: white;
+            padding: var(--space-md) var(--space-lg);
+            border-radius: 8px;
+            z-index: 10000;
+            max-width: 90%;
+        }
+        
+        .toast.success { background: var(--color-success); }
+        .toast.error { background: var(--color-error); }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .apps-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📱 Collection Manager</h1>
+    </div>
+    
+    <div class="apps-container">
+        <div id="mainContent" class="apps-grid"></div>
+    </div>
+    
+    <div class="bottom-nav">
+        <button class="nav-item active" onclick="showHome()">
+            <div class="nav-icon">🏠</div>
+            <div>Home</div>
+        </button>
+        <button class="nav-item" onclick="showSearch()">
+            <div class="nav-icon">🔍</div>
+            <div>Search</div>
+        </button>
+        <button class="nav-item" onclick="showImportModal()">
+            <div class="nav-icon">➕</div>
+            <div>Add</div>
+        </button>
+        <button class="nav-item" onclick="showSettings()">
+            <div class="nav-icon">⚙️</div>
+            <div>Settings</div>
+        </button>
+    </div>
+    
+    <div id="importModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Import App</div>
+            <div id="modalBody"></div>
+            <button class="btn btn-secondary" onclick="closeModal()" style="width:100%;margin-top:1rem;">Cancel</button>
+        </div>
+    </div>
+    
+    <div id="appOverlay" class="app-overlay">
+        <div class="app-toolbar">
+            <button class="close-btn" onclick="closeApp()" aria-label="Close app">×</button>
+            <div class="app-title" id="overlayTitle">App</div>
+        </div>
+        <iframe id="appIframe" class="app-frame" sandbox="allow-scripts allow-modals allow-forms allow-popups" aria-label="App content"></iframe>
+    </div>
+    
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <div id="loadingText">Processing...</div>
+        </div>
+    </div>
+    
+    <input type="file" id="fileInput" accept=".html,.htm,.js,.jsx" multiple style="display:none;">
+    
+    <script>
+        'use strict';
+        
+        // Database Manager
+        class DB {
+            constructor() {
+                this.name = 'ClaudeAppCollection';
+                this.version = 1;
+                this.db = null;
+            }
+            
+            async init() {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(this.name, this.version);
+                    
+                    request.onerror = () => reject(new Error('Database failed to open'));
+                    request.onsuccess = () => {
+                        this.db = request.result;
+                        resolve(this.db);
+                    };
+                    
+                    request.onupgradeneeded = (e) => {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains('apps')) {
+                            const store = db.createObjectStore('apps', { keyPath: 'id' });
+                            store.createIndex('created', 'created');
+                            store.createIndex('name', 'name');
+                        }
+                    };
+                });
+            }
+            
+            async save(app) {
+                const tx = this.db.transaction(['apps'], 'readwrite');
+                const store = tx.objectStore('apps');
+                return new Promise((resolve, reject) => {
+                    const request = store.put(app);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            }
+            
+            async getAll() {
+                const tx = this.db.transaction(['apps'], 'readonly');
+                const store = tx.objectStore('apps');
+                return new Promise((resolve, reject) => {
+                    const request = store.getAll();
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            }
+            
+            async get(id) {
+                const tx = this.db.transaction(['apps'], 'readonly');
+                const store = tx.objectStore('apps');
+                return new Promise((resolve, reject) => {
+                    const request = store.get(id);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            }
+            
+            async delete(id) {
+                const tx = this.db.transaction(['apps'], 'readwrite');
+                const store = tx.objectStore('apps');
+                return new Promise((resolve, reject) => {
+                    const request = store.delete(id);
+                    request.onsuccess = () => resolve();
+                    request.onerror = () => reject(request.error);
+                });
+            }
+        }
+        
+        // State
+        const db = new DB();
+        let apps = [];
+        
+        // Init
+        async function init() {
+            try {
+                showLoading('Initializing...');
+                await db.init();
+                await loadApps();
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                showToast('Failed to initialize: ' + error.message, 'error');
+                console.error(error);
+            }
+        }
+        
+        async function loadApps() {
+            try {
+                apps = await db.getAll();
+                apps.sort((a, b) => b.created - a.created);
+                renderApps();
+            } catch (error) {
+                showToast('Failed to load apps', 'error');
+                console.error(error);
+            }
+        }
+        
+        // Rendering
+        function renderApps() {
+            const grid = document.getElementById('mainContent');
+            
+            if (apps.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📱</div>
+                        <h2 class="empty-title">No apps yet!</h2>
+                        <p class="empty-description">
+                            Create apps with Claude and save them here. Supports HTML, React, and JavaScript.
+                        </p>
+                        <button class="btn btn-primary" onclick="showImportModal()">Add Your First App</button>
+                    </div>
+                `;
+                return;
+            }
+            
+            grid.innerHTML = apps.map(app => `
+                <div class="app-card" onclick="launchApp(${app.id})">
+                    <div class="app-icon">${app.icon || '📄'}</div>
+                    <div class="app-name">${esc(app.name)}</div>
+                    <div class="app-description">${esc(app.description || 'No description')}</div>
+                    <div class="app-meta">
+                        <span class="badge badge-${app.fileType}">${app.fileType}</span>
+                        <span>${formatSize(app.size || 0)}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // App Operations
+        async function launchApp(id) {
+            try {
+                const app = await db.get(id);
+                if (!app) {
+                    showToast('App not found', 'error');
+                    return;
+                }
+                
+                app.lastOpened = Date.now();
+                app.openCount = (app.openCount || 0) + 1;
+                await db.save(app);
+                
+                const blob = new Blob([app.html], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                
+                document.getElementById('overlayTitle').textContent = app.name;
+                document.getElementById('appIframe').src = url;
+                document.getElementById('appOverlay').classList.add('visible');
+                
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+            } catch (error) {
+                showToast('Failed to launch app', 'error');
+                console.error(error);
+            }
+        }
+        
+        function closeApp() {
+            document.getElementById('appOverlay').classList.remove('visible');
+            document.getElementById('appIframe').src = '';
+        }
+        
+        // Import
+        function showImportModal() {
+            document.getElementById('modalBody').innerHTML = `
+                <div class="import-option" onclick="selectFile()">
+                    <div class="import-icon">📁</div>
+                    <div class="import-text">
+                        <span class="import-label">Select Files</span>
+                        <span class="import-description">HTML, JSX, or JavaScript</span>
+                    </div>
+                </div>
+                <div class="import-option" onclick="showPaste()">
+                    <div class="import-icon">📋</div>
+                    <div class="import-text">
+                        <span class="import-label">Paste Code</span>
+                        <span class="import-description">Paste directly</span>
+                    </div>
+                </div>
+            `;
+            document.getElementById('importModal').classList.add('visible');
+        }
+        
+        function closeModal() {
+            document.getElementById('importModal').classList.remove('visible');
+        }
+        
+        function selectFile() {
+            document.getElementById('fileInput').onchange = handleFiles;
+            document.getElementById('fileInput').click();
+            closeModal();
+        }
+        
+        function showPaste() {
+            document.getElementById('modalBody').innerHTML = `
+                <p style="margin-bottom:1rem;color:var(--color-text-secondary)">Paste your code:</p>
+                <textarea class="paste-textarea" id="pasteArea" placeholder="Paste HTML, JSX, or JavaScript..."></textarea>
+                <button class="btn btn-primary" style="width:100%;margin-top:1rem;" onclick="importPaste()">Import</button>
+            `;
+        }
+        
+        async function handleFiles(e) {
+            const files = e.target.files;
+            if (!files || !files.length) return;
+            
+            const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+            
+            showLoading('Importing...');
+            let success = 0;
+            let errors = [];
+            
+            for (const file of files) {
+                try {
+                    // Security: Check file size
+                    if (file.size > MAX_SIZE) {
+                        errors.push(file.name + ' too large (max 5MB)');
+                        continue;
+                    }
+                    
+                    const content = await readFile(file);
+                    const type = detectType(file.name, content);
+                    const name = file.name.replace(/\.(html|htm|js|jsx)$/i, '');
+                    
+                    let html;
+                    if (type === 'html') html = content;
+                    else if (type === 'react') html = wrapReact(content, name);
+                    else if (type === 'javascript') html = wrapJS(content, name);
+                    else throw new Error('Unsupported file');
+                    
+                    // Security: Validate HTML size after wrapping
+                    if (html.length > MAX_SIZE) {
+                        errors.push(name + ' too large after processing');
+                        continue;
+                    }
+                    
+                    await saveApp(html, name, type);
+                    success++;
+                } catch (error) {
+                    console.error('Import error:', error);
+                    errors.push(file.name + ': ' + error.message);
+                }
+            }
+            
+            hideLoading();
+            
+            if (success > 0) {
+                showToast(`Imported ${success} app(s)`, 'success');
+            }
+            if (errors.length > 0) {
+                showToast(`${errors.length} file(s) failed to import`, 'error');
+                console.error('Import errors:', errors);
+            }
+            
+            e.target.value = '';
+        }
+        
+        async function importPaste() {
+            const code = document.getElementById('pasteArea').value.trim();
+            if (!code) {
+                showToast('Please paste code', 'error');
+                return;
+            }
+            
+            try {
+                showLoading('Importing...');
+                const type = detectType('pasted.auto', code);
+                const name = 'Pasted App';
+                
+                let html;
+                if (type === 'html') html = code;
+                else if (type === 'react') html = wrapReact(code, name);
+                else if (type === 'javascript') html = wrapJS(code, name);
+                else throw new Error('Unknown code type');
+                
+                await saveApp(html, name, type);
+                hideLoading();
+                closeModal();
+                showToast('Imported successfully', 'success');
+            } catch (error) {
+                hideLoading();
+                showToast('Import failed: ' + error.message, 'error');
+            }
+        }
+        
+        async function saveApp(html, name, type) {
+            const app = {
+                id: Date.now(),
+                name: name,
+                description: `Imported ${type} app`,
+                icon: { html: '🌐', react: '⚛️', javascript: '📜' }[type],
+                color: { html: '#2196F3', react: '#61DAFB', javascript: '#F7DF1E' }[type],
+                created: Date.now(),
+                lastOpened: null,
+                openCount: 0,
+                fileType: type,
+                size: new Blob([html]).size,
+                html: html
+            };
+            
+            await db.save(app);
+            await loadApps();
+        }
+        
+        // File Processing
+        function readFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = () => reject(new Error('Read failed'));
+                reader.readAsText(file);
+            });
+        }
+        
+        function detectType(name, content) {
+            const ext = name.split('.').pop().toLowerCase();
+            if (ext === 'html' || ext === 'htm') return 'html';
+            if (ext === 'jsx') return 'react';
+            if (ext === 'js') {
+                if (/React\.|useState|useEffect/.test(content)) return 'react';
+                return 'javascript';
+            }
+            return 'unknown';
+        }
+        
+        function wrapReact(code, name) {
+            let clean = code.trim();
+            clean = clean.replace(/import\s+.*?from\s+['"].*?['"];?\s*/g, '');
+            clean = clean.replace(/export\s+default\s+/g, '');
+            
+            const match = clean.match(/function\s+([A-Za-z0-9_]+)/);
+            const comp = match ? match[1] : 'App';
+            
+            return '<!DOCTYPE html>\n<html>\n<head>\n' +
+                '<meta charset="UTF-8">\n' +
+                '<title>' + esc(name) + '</title>\n' +
+                '<script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"><\/script>\n' +
+                '<script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"><\/script>\n' +
+                '<script src="https://unpkg.com/@babel/standalone@7.23.0/babel.min.js"><\/script>\n' +
+                '<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:system-ui,sans-serif}</style>\n' +
+                '</head>\n<body>\n' +
+                '<div id="root"></div>\n' +
+                '<script type="text/babel">\n' +
+                'const {useState,useEffect,useReducer,useCallback,useMemo,useRef}=React;\n' +
+                clean + '\n' +
+                'ReactDOM.createRoot(document.getElementById("root")).render(<' + comp + '/>);\n' +
+                '<\/script>\n</body>\n</html>';
+        }
+        
+        function wrapJS(code, name) {
+            return '<!DOCTYPE html>\n<html>\n<head>\n' +
+                '<meta charset="UTF-8">\n' +
+                '<title>' + esc(name) + '</title>\n' +
+                '<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:system-ui,sans-serif;padding:2rem}#app{max-width:1200px;margin:0 auto}</style>\n' +
+                '</head>\n<body>\n' +
+                '<div id="app"></div>\n' +
+                '<script>\n' + code + '\n<\/script>\n' +
+                '</body>\n</html>';
+        }
+        
+        // Utils
+        function esc(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+        
+        function showLoading(text) {
+            document.getElementById('loadingText').textContent = text;
+            document.getElementById('loadingOverlay').classList.add('visible');
+        }
+        
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.remove('visible');
+        }
+        
+        function showToast(msg, type) {
+            const toast = document.createElement('div');
+            toast.className = 'toast ' + (type || 'info');
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+        
+        // Navigation
+        function showHome() {
+            renderApps();
+        }
+        
+        function showSearch() {
+            showToast('Search coming soon!', 'info');
+        }
+        
+        function showSettings() {
+            showToast('Settings coming soon!', 'info');
+        }
+        
+        // Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('SW registered'))
+                    .catch(err => console.log('SW failed:', err));
+            });
+        }
+        
+        // Start
+        init();
+    </script>
+</body>
+</html>
